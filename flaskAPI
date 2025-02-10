@@ -1,0 +1,55 @@
+pip install flask-ngrok
+from flask import Flask, request, jsonify
+from flask_ngrok import run_with_ngrok  # Needed for Colab
+import pickle
+import numpy as np
+from tensorflow.keras.preprocessing import image
+import nest_asyncio
+!pip install uvicorn nest_asyncio
+import nest_asyncio
+import uvicorn
+!ngrok authtoken 2srewZSYGHXuzSYaV5pjQxFepT9_7NdoNP6byGyscVGthQbuk
+# Load the model from the pickle file
+with open('/content/model.pkl', 'rb') as f:  # Adjust path if needed
+    model = pickle.load(f)
+
+print("Model loaded successfully!")
+app = Flask(__name__)  # Initialize Flask
+run_with_ngrok(app)  # Enables external access via ngrok
+
+@app.route('/predict', methods=['POST'])
+def predict():
+    file = request.files['image']  # Get uploaded image
+    
+    # Process the image
+    img = image.load_img(file, target_size=(224, 224))  # Resize for model
+    img_array = image.img_to_array(img)
+    img_array = np.expand_dims(img_array, axis=0)  # Add batch dimension
+    img_array /= 255.0  # Normalize the image
+
+    # Make prediction
+    prediction = model.predict(img_array)
+
+    # Convert prediction result to JSON
+    return jsonify({'prediction': prediction.tolist()})
+
+# Run the Flask app
+if __name__ == '__main__':
+    app.run()
+!pip install pyngrok
+from pyngrok import ngrok
+
+# Start Flask
+port = 5000  # Ensure this matches the Flask port
+public_url = ngrok.connect(port)
+print(f"🚀 Public URL: {public_url}")
+
+#app.run(port=port)
+import requests
+
+url = 'https://d675-34-90-149-117.ngrok-free.app/predict'  # Replace with your ngrok URL
+file = {'image': open('test2.jpg', 'rb')}  # Upload an image
+
+response = requests.post(url, files=file)
+#print(response.json())  # View prediction result
+
